@@ -7,7 +7,6 @@ COPY Pipfile.lock /app/Pipfile.lock
 
 WORKDIR /app
 
-# -- Install dependencies:
 RUN apk add --update --no-cache postgresql-client git \
   && apk add --virtual .build-deps gcc g++ postgresql-dev \
   && set -ex && pipenv install --deploy --system \

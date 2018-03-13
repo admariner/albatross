@@ -1,4 +1,4 @@
-from sys import stdout
+import time
 from threading import Thread
 
 from django.utils import timezone
@@ -82,10 +82,21 @@ class ArchiveConsumer(LogMixin, NotificationMixin, ConsumerMixin, Thread):
         )]
 
     def callback(self, tweet, message):
+
         try:
+
             self._process_message(tweet, message)
+
         except Exception as e:
+
             self._alert("An error occurred whilst processing a message", e)
+
+            # Give RabbitMQ a chance to chill before we try again
+            time.sleep(1)
+
+            # Issue should-stop, so this consumer will die, allowing a new one
+            # to start.
+            self.should_stop = True
 
     def _process_message(self, tweet, message):
 
@@ -101,12 +112,7 @@ class ArchiveConsumer(LogMixin, NotificationMixin, ConsumerMixin, Thread):
         if self.archive.allow_search:
             self.search.collect(tweet)
 
-        stdout.flush()
-
-        try:
-            message.ack()
-        except ConnectionResetError as e:
-            self.logger.error(str(e))
+        message.ack()
 
         now = timezone.now()
 

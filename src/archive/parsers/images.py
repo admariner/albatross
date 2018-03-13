@@ -28,12 +28,9 @@ class ImagesParser(TweetParser):
                             )
 
     def generate(self):
-        return bytes(
-            json.dumps(
-                self._calculate_image_weight(self.aggregate),
-                separators=(",", ":")
-            ),
-            "UTF-8"
+        return json.dumps(
+            self._calculate_image_weight(self.aggregate),
+            separators=(",", ":")
         )
 
     def _reduce_images(self, images, threshold=1):

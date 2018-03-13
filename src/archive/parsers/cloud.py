@@ -72,7 +72,7 @@ class CloudParser(TweetParser):
                 "size": self.BUCKET_SIZES[bucket]
             })
 
-        return bytes(json.dumps(r, separators=(",", ":")), "UTF-8")
+        return json.dumps(r, separators=(",", ":"))
 
     def _get_stop_words(self, language):
         return self.STOP_WORDS["*"] + self.STOP_WORDS.get(language, [])

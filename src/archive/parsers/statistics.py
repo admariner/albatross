@@ -100,7 +100,7 @@ class StatisticsParser(TweetParser):
 
     def generate(self):
 
-        return bytes(json.dumps({
+        return json.dumps({
             "makeup": [
                 ["Retweets", self.aggregate["makeup"]["Retweets"]],
                 ["Original Content", self.aggregate["total"] - self.aggregate["makeup"]["Retweets"] - self.aggregate["makeup"]["Replies"]],  # NOQA: E501
@@ -129,7 +129,7 @@ class StatisticsParser(TweetParser):
             "retweetees": self._simplify_statistic(self.aggregate["retweetees"]),  # NOQA: E501
             "total": self.aggregate["total"],
             "sentiments": list(self.aggregate["sentiments"].items())
-        }, separators=(",", ":")), "UTF-8")
+        }, separators=(",", ":"))
 
     @staticmethod
     def _translate_from_codes(stats, library, lookup, modifier="lower"):

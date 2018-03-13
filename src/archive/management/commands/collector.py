@@ -51,7 +51,7 @@ class Command(LogMixin, NotificationMixin, BaseCommand):
 
         self.verbosity = options.get("verbosity", self.verbosity)
 
-        self.logger.info("Starting Collector\n")
+        self.logger.info("Starting Collector")
 
         signal.signal(signal.SIGINT, self.exit)
         signal.signal(signal.SIGTERM, self.exit)
@@ -65,15 +65,15 @@ class Command(LogMixin, NotificationMixin, BaseCommand):
 
     def exit(self, *args):
 
-        self.logger.info(f"Exit called with {args}\n")
+        self.logger.info(f"Exit called with {args}")
 
         for user, stream in self.streams.items():
             self.logger.info(f"  Killing stream for {user}: ")
             stream.disconnect()
             stream.listener.close_log()
-            self.logger.info("[ DONE ]\n")
+            self.logger.info("[ DONE ]")
 
-        self.logger.info("Exiting gracefully\n")
+        self.logger.info("Exiting gracefully")
         sys.exit(0)
 
     def loop(self):
@@ -110,7 +110,7 @@ class Command(LogMixin, NotificationMixin, BaseCommand):
 
     def adjust_connections(self, to_start, to_stop):
 
-        self.logger.info("Adjusting connections: {}\n".format(self.tracking))
+        self.logger.info("Adjusting connections: {}".format(self.tracking))
 
         users_adjusting = [a.user for a in list(to_start) + list(to_stop)]
 
@@ -137,7 +137,7 @@ class Command(LogMixin, NotificationMixin, BaseCommand):
                 groups[archive.user].append(archive)
 
         for user, archives in groups.items():
-            self.logger.info("Connecting: {}::{}\n".format(user, archives))
+            self.logger.info("Connecting: {}::{}".format(user, archives))
             try:
                 api = self._authenticate(user)
                 self.streams[user] = tweepy.Stream(
@@ -184,7 +184,7 @@ class Command(LogMixin, NotificationMixin, BaseCommand):
         to_restart = []
         for user, stream in self.streams.items():
             if not stream.running:
-                self.logger.warning("Reconnection required: {}\n".format(user))
+                self.logger.warning("Reconnection required: {}".format(user))
                 for channel in stream.listener.channels:
                     to_restart.append(channel["archive"].pk)
 
@@ -216,7 +216,7 @@ class Command(LogMixin, NotificationMixin, BaseCommand):
 
     def _wait_for_db(self):
         try:
-            self.logger.info("Looking for the database...\n")
+            self.logger.info("Looking for the database...")
             cursor = connections["default"].cursor()
             cursor.execute(f"SELECT count(*) FROM {SocialApp._meta.db_table}")
             assert cursor.fetchone()

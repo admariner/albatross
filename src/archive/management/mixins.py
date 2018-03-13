@@ -1,4 +1,4 @@
-class NotificationMixin(object):
+class NotificationMixin:
 
     BAR = "==================================================================="
 

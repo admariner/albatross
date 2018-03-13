@@ -68,6 +68,11 @@ Everything is dockerised, so you need:
   Note that the values aren't wrapped in quotes.  You can thank Docker for
   that.
 
+  Also note that you can configure the externally-available prots for the web
+  service and RabbitMQ by setting `WEB_PORT=<number>` and
+  `RABBITMQ_PORT=<number>` respectively.
+
+
 
 ## Running
 

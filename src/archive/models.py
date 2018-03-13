@@ -101,11 +101,11 @@ class Archive(LogMixin, models.Model):
 
     def get_map_path(self):
         return os.path.join(
-            self.ARCHIVES_DIR, "map", f"{self.pk:09}.json.bz2")
+            self.ARCHIVES_DIR, "map", f"{self.pk:09}.json.xz")
 
     def get_map_url(self):
         return os.path.join(
-            self.ARCHIVES_URL, "map", f"{self.pk:09}.json.bz2")
+            self.ARCHIVES_URL, "map", f"{self.pk:09}.json.xz")
 
     def get_absolute_url(self):
         return "/archives/{}/statistics/".format(self.pk)

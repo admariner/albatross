@@ -1,8 +1,8 @@
-import bz2
+import lzma
 import json
 
 
-class MapParser(object):
+class MapParser:
 
     class NoCoordinatesFound(Exception):
         pass
@@ -18,7 +18,7 @@ class MapParser(object):
             pass
 
     def generate(self):
-        with bz2.open(self.archive.get_map_path(), "w") as f:
+        with lzma.open(self.archive.get_map_path(), "wb") as f:
             f.write(bytes(json.dumps(
                 self.aggregate,
                 separators=(",", ":"),

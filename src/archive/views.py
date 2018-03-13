@@ -1,23 +1,22 @@
-import bz2
 import functools
-
+import lzma
 from datetime import datetime
 
-from django.urls import reverse
 from django.contrib import messages
 from django.http import StreamingHttpResponse
 from django.shortcuts import get_object_or_404
+from django.urls import reverse
 from django.views.generic import FormView
 from rest_framework import generics, permissions
+from rest_framework.renderers import BrowsableAPIRenderer, JSONRenderer
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework.renderers import JSONRenderer, BrowsableAPIRenderer
 
-from .forms import ArchiveForm
 from .filters import ArchiveFilterSet
+from .forms import ArchiveForm
 from .models import Archive
-from .serializers import ArchiveSerializer
 from .parsers.base import TweetParser
+from .serializers import ArchiveSerializer
 
 try:
     import ujson as json
@@ -170,7 +169,7 @@ class ArchiveDistillationView(APIView):
 
         kind = kwargs.get("kind")
         if kind == "map":
-            with bz2.open(self.archive.get_map_path()) as f:
+            with lzma.open(self.archive.get_map_path()) as f:
                 return StreamingHttpResponse(f.readlines())
 
         return StreamingHttpResponse(getattr(self.archive, kind))

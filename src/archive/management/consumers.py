@@ -103,7 +103,10 @@ class ArchiveConsumer(LogMixin, NotificationMixin, ConsumerMixin, Thread):
 
         stdout.flush()
 
-        message.ack()
+        try:
+            message.ack()
+        except ConnectionResetError as e:
+            self.logger.error(str(e))
 
         now = timezone.now()
 
@@ -124,6 +127,7 @@ class ArchiveConsumer(LogMixin, NotificationMixin, ConsumerMixin, Thread):
             self.archive.pk
         ))
         self._compile_aggregates()
+        channel.basic_qos(0, 1, False)
 
     def on_consume_end(self, connection, channel):
 

@@ -73,6 +73,27 @@ Everything is dockerised, so you need:
   `RABBITMQ_PORT=<number>` respectively.
 
 
+### Instructions
+
+#### 1. Clone the repo
+
+```bash
+$ git clone https://github.com/danielquinn/albatross.git
+```
+
+#### 2. Add the environment config file mentioned above.
+
+```bash
+$ cd albatross
+$ vim .env
+```
+
+#### 3. Start the containers
+
+```bash
+$ docker-compose up
+```
+
 
 ## Running
 

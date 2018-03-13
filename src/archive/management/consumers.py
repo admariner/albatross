@@ -117,8 +117,6 @@ class ArchiveConsumer(LogMixin, NotificationMixin, ConsumerMixin, Thread):
         window = self.DISTILLATION_WINDOW
         if (now - self.last_distilled).total_seconds() > window:
             self._write_distillations()
-        else:
-            self.logger.debug("Skipping distillation")
 
     def on_consume_ready(self, connection, channel, consumers, **kwargs):
         self.logger.info('Readying consumption for "{}" (#{})'.format(

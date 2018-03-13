@@ -39,6 +39,10 @@ services:
     volumes:
       - .:/app
     user: app
+    logging:
+      options:
+        max-size: "200k"
+        max-file: "1"
     working_dir: /app/src
     stop_grace_period: 1m
     restart: on-failure
@@ -57,6 +61,11 @@ services:
     volumes:
       - .:/app
     user: app
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "500k"
+        max-file: "1"
     stop_grace_period: 1m
     restart: on-failure
     entrypoint: "/app/src/manage.py collector"
@@ -75,6 +84,10 @@ services:
     ports:
       - "${WEB_PORT-8000}:8000"
     user: app
+    logging:
+      options:
+        max-size: "200k"
+        max-file: "1"
     stop_grace_period: 5s
     restart: on-failure
     entrypoint: '/app/src/manage.py runserver 0.0.0.0:8000 --insecure'

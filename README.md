@@ -124,14 +124,3 @@ Twitter started acting more and more hostile to projects that would dare store
 In 2018 however, I repurposed Albatross into a self-hosted model to help a
 friend do some research for her PhD.  If it works for her, it may work for
 others, so I decided to polish it up a bit and re-license it under the AGPL3.
-
-
-## TODO
-
-It turns out that on weaker hardware, the connectivity between the consumer
-and RabbitMQ is flaking out in ways I'm having trouble working around.  To fix
-this, I'm going to refactor the architecture to batch tweets into memory at
-the collector level and then simply use Celery to process these batches.  This
-may make generating statistics as the collection is running difficult however.
-I'm not yet sure how to work around this.
-

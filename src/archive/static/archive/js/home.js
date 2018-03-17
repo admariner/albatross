@@ -53,6 +53,7 @@ var Home = function(albatross, user_id){
 
         var total = (row.total) ? row.total : compiling;
         var size = (row.size) ? filesize(row.size) : compiling;
+        var rate = (row.rate) ? row.rate.toFixed(2) : compiling;
 
         var download = compiling;
         var as_text = compiling;
@@ -130,7 +131,7 @@ var Home = function(albatross, user_id){
 
         }
 
-        var mine = (self.user_id == row.user_id) ? " mine" : "";
+        var mine = (self.user_id === row.user_id) ? " mine" : "";
 
         var $node = $(
           '<div class="grid-item' + mine + ' ' + status + '">' +
@@ -138,7 +139,8 @@ var Home = function(albatross, user_id){
               '<div class="query">' + query + '</div>' +
               '<div class="time">' + start_time + '</div>' +
               '<div class="time">' + duration + '</div>' +
-              '<div class="numeric">' + total + ' tweets, ' + size + '</div>' +
+              '<div class="numeric">' + total + ' tweets (' + rate + '/s)</div>' +
+              '<div class="numeric">' + size + '</div>' +
               '<div class="pop-content">' +
                 download + as_text + as_cloud + as_statistics + as_images + as_map +
               '</div>' +

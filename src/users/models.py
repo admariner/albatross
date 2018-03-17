@@ -39,8 +39,8 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     objects = UserManager()
 
-    def __unicode__(self):
-        return self.name
+    def __str__(self):
+        return self.username
 
     def get_full_name(self):
         return self.get_username()

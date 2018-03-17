@@ -15,7 +15,7 @@ from rest_framework.views import APIView
 from .filters import ArchiveFilterSet
 from .forms import ArchiveForm
 from .models import Archive
-from .parsers.base import TweetParser
+from .aggregators.base import Aggregator
 from .serializers import ArchiveSerializer
 
 try:
@@ -138,7 +138,7 @@ class ArchiveSubsetView(APIView):
 
         if key == "url":
             if "user" in obj:
-                return TweetParser.get_url(obj)
+                return Aggregator.get_url(obj)
 
         if isinstance(obj, list):
             try:

@@ -2,8 +2,9 @@ import datetime
 import json
 import lzma
 import os
-import pytz
+import time
 
+import pytz
 import tweepy
 from allauth.socialaccount.models import SocialApp, SocialToken
 from celery.utils.log import get_task_logger
@@ -11,6 +12,12 @@ from django.utils import timezone
 
 from albatross.celery import app
 
+from .aggregators.cloud import CloudAggregator
+from .aggregators.images import ImagesAggregator
+from .aggregators.map import MapAggregator
+from .aggregators.raw import RawAggregator
+from .aggregators.search import SearchAggregator
+from .aggregators.statistics import StatisticsAggregator
 from .models import Archive
 from .settings import LOOKBACK
 
@@ -28,8 +35,12 @@ def backfill(archive_id):
 
     archive = Archive.objects.get(pk=archive_id)
 
+    # Re-use the RawAggregator, so the backfilled tweets will automatically be
+    # consolidated as part of RawAggregator.finalise().
+    aggregator = RawAggregator(archive)
+    path = os.path.join(aggregator.cache_dir, "0.fjson.xz")
+
     # No sense in proceeding if this has already been done
-    path = archive.get_raw_path(suffix="00000000000000")
     if os.path.exists(path):
         return
 
@@ -80,14 +91,30 @@ def backfill(archive_id):
 
 
 @app.task
-def consolidate(archive_id):
+def collect(class_name, archive_id, tweets, is_final=False):
     """
-    As a collection is running, we're periodically creating timestamped files
-    with a bunch of tweets in them.  This task is run after the collection is
-    finished and all it does is roll all of those separate files into one big
-    one.
-
-    :param archive_id:
+    1. Pull in the cached copy of all stats from the cache.
+    2. Update the stats dict from these tweets and re-cache it.
+    3. Process the stats down into an aggregate and write that to the db.
     """
 
-    Archive.objects.get(pk=archive_id).consolidate()
+    if is_final:
+        logger.info("Rolling up archive #%s", archive_id)
+        time.sleep(60 * 5)
+
+    classes = {
+        "raw": RawAggregator,
+        "statistics": StatisticsAggregator,
+        "cloud": CloudAggregator,
+        "map": MapAggregator,
+        "search": SearchAggregator,
+        "images": ImagesAggregator
+    }
+
+    archive = Archive.objects.get(pk=archive_id)
+    aggregator = classes[class_name](archive)
+    aggregator.collect(tweets)
+    aggregator.generate()
+
+    if is_final:
+        aggregator.finalise()

@@ -60,4 +60,5 @@ class ArchiveSerializer(serializers.ModelSerializer):
             "statistics_generated",
             "search_generated",
             "events",
+            "rate",
         )

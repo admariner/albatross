@@ -57,5 +57,7 @@ docs/_build/
 target/
 
 # Albatross-specific
-media
+media/cache
+media/archives/raw/*.xz
+media/archives/map
 src/albatross/static/contrib/

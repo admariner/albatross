@@ -1,47 +1,61 @@
-import lzma
 import json
+import lzma
+
+from django.utils import timezone
+
+from .base import Aggregator
 
 
-class MapParser:
+class NoCoordinatesFound(Exception):
+    pass
 
-    class NoCoordinatesFound(Exception):
-        pass
 
-    def __init__(self, archive):
-        self.aggregate = []
-        self.archive = archive
+class MapAggregator(Aggregator):
 
-    def collect(self, tweet):
-        try:
-            self.aggregate.append(MapParser._get_refined_data(tweet))
-        except MapParser.NoCoordinatesFound:
-            pass
+    DEFAULT_AGGREGATE = []
+
+    def collect(self, tweets):
+
+        aggregate = self.DEFAULT_AGGREGATE.copy()
+
+        for tweet in tweets:
+            try:
+                aggregate.append(self._get_refined_data(tweet))
+            except NoCoordinatesFound:
+                pass
+
+        self.write_cache(aggregate)
 
     def generate(self):
+
+        aggregate = self.read_cache()
+
         with lzma.open(self.archive.get_map_path(), "wb") as f:
             f.write(bytes(json.dumps(
-                self.aggregate,
+                aggregate,
                 separators=(",", ":"),
                 sort_keys=True
             ), "UTF-8"))
 
-    @classmethod
-    def _get_refined_data(cls, tweet):
+        self.archive.map_generated = timezone.now()
+        self.archive.save(update_fields=("map_generated",))
+
+    def _get_refined_data(self, tweet):
 
         if "coordinates" not in tweet:
             if "place" not in tweet:
-                raise cls.NoCoordinatesFound()
+                raise NoCoordinatesFound()
 
-        if cls._tweet_contains_coordinates(tweet):
+        if self._tweet_contains_coordinates(tweet):
             coordinates = (
                 round(tweet["coordinates"]["coordinates"][0], 8),
                 round(tweet["coordinates"]["coordinates"][1], 8)
             )
-        elif cls._place_contains_bounding_box(tweet):
-            coordinates = cls._get_centre(
+        elif self._place_contains_bounding_box(tweet):
+            coordinates = self._get_centre(
                 tweet["place"]["bounding_box"]["coordinates"][0])
         else:
-            raise cls.NoCoordinatesFound()
+            raise NoCoordinatesFound()
 
         return [
             tweet["id_str"],

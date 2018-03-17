@@ -67,7 +67,7 @@ var Statistics = function(albatross, pk, query, colour_overrides, events){
 
     var width = $target.width();
 
-    if (data[data.length - 1][0] == "*") {
+    if (data[data.length - 1][0] === "*") {
       data[data.length - 1][0] = "Other";
     }
 

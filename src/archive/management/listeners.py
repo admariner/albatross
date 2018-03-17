@@ -1,21 +1,23 @@
-from sys import stderr, stdout
-from time import sleep
-
-from django.conf import settings
-from kombu import Connection
+from sys import stderr
+from datetime import timedelta
+from django.utils import timezone
 from tweepy import StreamListener
 
 from albatross.logging import LogMixin
 from users.models import User
 
 from ..models import Archive
-from .consumers import ArchiveConsumer
+from ..tasks import collect
 from .mixins import NotificationMixin
 
 
-class StreamArchiver(LogMixin, NotificationMixin, StreamListener):
+class AlbatrossListener(LogMixin, NotificationMixin, StreamListener):
 
-    def __init__(self, archives, verbosity=1, *args, **kwargs):
+    BUFFER_SIZE = 999  # 1 less than the total tweets we want per batch
+    AGGREGATION_WINDOW = timedelta(seconds=60)  # Max time between aggregations
+    AGGREGATORS = ("raw", "statistics", "cloud", "map", "search", "images")
+
+    def __init__(self, archives, *args, **kwargs):
 
         super().__init__(*args, **kwargs)
 
@@ -25,29 +27,13 @@ class StreamArchiver(LogMixin, NotificationMixin, StreamListener):
         # All archives in a stream belong to the same user
         self.user = archives[0].user
 
-        self.verbosity = verbosity
-        self.connection = Connection(settings.BROKER_URL)
-
         self.channels = []
         for archive in archives:
-            with Connection(settings.BROKER_URL) as connection:
-                consumer = ArchiveConsumer(
-                    archive, connection, verbosity=self.verbosity)
-                consumer.start()
-                self.channels.append({
-                    "archive": archive,
-                    "consumer": consumer,
-                    "queue": self.connection.SimpleQueue(
-                        "archiver:{}".format(archive.pk)
-                    ),
-                })
-
-    def set_verbosity(self, verbosity):
-        self.logger.info(
-            "Setting {} stream verbosity to {}".format(self.user, verbosity))
-        self.verbosity = verbosity
-        for channel in self.channels:
-            channel["consumer"].set_verbosity(self.verbosity)
+            self.channels.append({
+                "archive": archive,
+                "buffer": [],
+                "last-aggregation": timezone.now()
+            })
 
     def on_data(self, raw_data):
         self.raw_data = raw_data
@@ -55,23 +41,56 @@ class StreamArchiver(LogMixin, NotificationMixin, StreamListener):
 
     def on_status(self, status):
 
+        self.logger.debug(".")
+
         for channel in self.channels:
 
-            archive = channel["archive"]
-            queue = channel["queue"]
-            query = archive.query.lower()
+            query = channel["archive"].query.lower()
 
             if query in status.text.lower():
-                queue.put(status._json)
+
+                self.on_vetted_tweet(channel, status)
+
             elif hasattr(status, "retweeted_status"):
+
                 if query in status.retweeted_status.text.lower():
-                    queue.put(status._json)
+                    self.on_vetted_tweet(channel, status)
                 elif hasattr(status.retweeted_status, "quoted_status"):
                     if query in status.retweeted_status.quoted_status["text"].lower():  # NOQA: E501
-                        queue.put(status._json)
+                        self.on_vetted_tweet(channel, status)
+
             elif hasattr(status, "quoted_status"):
+
                 if query in status.quoted_status["text"].lower():
-                    queue.put(status._json)
+                    self.on_vetted_tweet(channel, status)
+
+    def on_vetted_tweet(self, channel, status):
+        """
+        IMPORTANT: status._json isn't JSON at all, but a Python dictionary
+        IMPORTANT: *generated* from the initial JSON.
+
+        This might be further optimised by overriding on_data and skipping the
+        re-JSONing step.
+        """
+
+        now = timezone.now()
+        channel["buffer"].append(status._json)
+
+        do_aggregation = False
+        if now - channel["last-aggregation"] > self.AGGREGATION_WINDOW:
+            do_aggregation = True
+        elif len(channel["buffer"]) > self.BUFFER_SIZE:
+            do_aggregation = True
+
+        if do_aggregation:
+            for class_name in self.AGGREGATORS:
+                collect.delay(
+                    class_name,
+                    channel["archive"].pk,
+                    channel["buffer"]
+                )
+            channel["buffer"] = []
+            channel["last-aggregation"] = now
 
     def on_exception(self, exception):
 
@@ -118,23 +137,15 @@ class StreamArchiver(LogMixin, NotificationMixin, StreamListener):
 
     def close_log(self):
 
-        self.connection.close()
-        self.connection.release()
-
-        # Set `should_stop` which queues the consumer to close everything up
         for channel in self.channels:
-            channel["consumer"].should_stop = True
-
-        # Now wait until the consumer has confirmed that it's finished
-        for channel in self.channels:
-            while not channel["consumer"].is_stopped:
-                if self.verbosity > 1:
-                    self.logger.info("Waiting for {} to stop".format(
-                        channel["consumer"].archive)
-                    )
-                sleep(0.1)
-
-        stdout.flush()
+            for class_name in self.AGGREGATORS:
+                collect.delay(
+                    class_name,
+                    channel["archive"].pk,
+                    channel["buffer"],
+                    is_final=channel["archive"].stopped <= timezone.now()
+                )
+                channel["buffer"] = []
 
         Archive.objects.filter(
             pk__in=[__["archive"].pk for __ in self.channels]

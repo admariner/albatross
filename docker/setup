@@ -7,6 +7,10 @@ done
 
 sleep 3
 
+if [[ ! -e src/albatross/static/contrib ]]; then
+    tar xJf src/albatross/static/contrib.tar.xz -C src/albatross/static/
+fi
+
 # Migrate on every start regardless
 /app/src/manage.py migrate
 

@@ -60,7 +60,7 @@ Everything is dockerised, so you need:
     SECRET_KEY=<secret>
     DEBUG=false
     ADMINS=[["Your Name", "your@email.address"]]
-    DJANGO_LOG_LEVEL="INFO"
+    DJANGO_LOG_LEVEL=INFO
 
     TWITTER_CONSUMER_KEY=<secret>
     TWITTER_CONSUMER_SECRET=<secret>
@@ -85,7 +85,7 @@ $ git clone https://github.com/danielquinn/albatross.git
 
 ```bash
 $ cd albatross
-$ vim .env
+$ ${EDITOR} .env
 ```
 
 #### 3. Start the containers

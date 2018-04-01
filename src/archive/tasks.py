@@ -18,7 +18,7 @@ from .aggregators.map import MapAggregator
 from .aggregators.raw import RawAggregator
 from .aggregators.search import SearchAggregator
 from .aggregators.statistics import StatisticsAggregator
-from .models import Archive
+from .models import Archive, ArchiveSegment
 from .settings import LOOKBACK
 
 logger = get_task_logger(__name__)
@@ -98,23 +98,62 @@ def collect(class_name, archive_id, tweets, is_final=False):
     3. Process the stats down into an aggregate and write that to the db.
     """
 
-    if is_final:
-        logger.info("Rolling up archive #%s", archive_id)
-        time.sleep(60 * 5)
-
     classes = {
-        "raw": RawAggregator,
-        "statistics": StatisticsAggregator,
-        "cloud": CloudAggregator,
-        "map": MapAggregator,
-        "search": SearchAggregator,
-        "images": ImagesAggregator
+        ArchiveSegment.TYPE_RAW: RawAggregator,
+        ArchiveSegment.TYPE_STATS: StatisticsAggregator,
+        ArchiveSegment.TYPE_CLOUD: CloudAggregator,
+        ArchiveSegment.TYPE_IMAGES: ImagesAggregator,
+        ArchiveSegment.TYPE_MAP: MapAggregator,
+        ArchiveSegment.TYPE_SEARCH: SearchAggregator,
     }
 
     archive = Archive.objects.get(pk=archive_id)
+
+    segment = ArchiveSegment.objects.create(archive=archive, type=class_name)
+
     aggregator = classes[class_name](archive)
     aggregator.collect(tweets)
     aggregator.generate()
 
+    segment.stop_time = timezone.now()
+    segment.save(update_fields=("stop_time",))
+
     if is_final:
+
+        _wait_for_other_aggregators_to_close(archive, class_name)
+
+        logger.info(f"Rolling up {class_name} data for archive #{archive_id}")
+
         aggregator.finalise()
+
+        ArchiveSegment.objects.filter(
+            archive=archive, type=class_name).delete()
+
+
+def _wait_for_other_aggregators_to_close(archive, class_name):
+    """
+    By the time a final aggregator is called, we know that all of the other
+    aggregations have been called, but not necessarily finished.  We don't want
+    to issue a wrap-up until we know everything is done, so here we wait,
+    continuously checking the database to be sure all of the other bits are
+    done before we start our final run.
+    """
+
+    time.sleep(5)  # Wait 5 seconds for other jobs to be picked up
+
+    kwargs = {
+        "archive": archive,
+        "type": class_name,
+        "stop_time__isnull": True
+    }
+
+    while True:
+
+        ags = ArchiveSegment.objects.filter(**kwargs).count()
+
+        if not ags:
+            return
+
+        logger.info(f"Waiting for {ags} aggregations to complete.")
+
+        time.sleep(5)

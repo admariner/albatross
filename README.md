@@ -62,9 +62,15 @@ Everything is dockerised, so you need:
   Note that the values aren't wrapped in quotes.  You can thank Docker for
   that.
 
-  Also note that you can configure the externally-available prots for the web
-  service and RabbitMQ by setting `WEB_PORT=<number>` and
-  `RABBITMQ_PORT=<number>` respectively.
+  You can also optionally set some other values here:
+    * You can configure the externally-available ports for the web service and
+      RabbitMQ by setting `WEB_PORT=<number>` and `RABBITMQ_PORT=<number>`
+      respectively.
+    * You can get more output from Albatross by changing the log level.  Set
+      `DJANGO_LOG_LEVEL=INFO` or even `DJANGO_LOG_LEVEL=DEBUG` if you want.
+    * If you're planning on doing some development, you can turn global
+      debugging on by setting `DEBUG=true`
+    * You can also change Django's `SECRET_KEY` by setting that value here.
 
 
 ### Instructions

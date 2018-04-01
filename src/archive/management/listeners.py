@@ -6,7 +6,7 @@ from tweepy import StreamListener
 from albatross.logging import LogMixin
 from users.models import User
 
-from ..models import Archive
+from ..models import Archive, ArchiveSegment
 from ..tasks import collect
 from .mixins import NotificationMixin
 
@@ -15,7 +15,6 @@ class AlbatrossListener(LogMixin, NotificationMixin, StreamListener):
 
     BUFFER_SIZE = 999  # 1 less than the total tweets we want per batch
     AGGREGATION_WINDOW = timedelta(seconds=60)  # Max time between aggregations
-    AGGREGATORS = ("raw", "statistics", "cloud", "map", "search", "images")
 
     def __init__(self, archives, *args, **kwargs):
 
@@ -83,7 +82,7 @@ class AlbatrossListener(LogMixin, NotificationMixin, StreamListener):
             do_aggregation = True
 
         if do_aggregation:
-            for class_name in self.AGGREGATORS:
+            for class_name in [_[0] for _ in ArchiveSegment.TYPES]:
                 collect.delay(
                     class_name,
                     channel["archive"].pk,
@@ -138,7 +137,6 @@ class AlbatrossListener(LogMixin, NotificationMixin, StreamListener):
     def close_log(self):
 
         for channel in self.channels:
-            for class_name in self.AGGREGATORS:
                 collect.delay(
                     class_name,
                     channel["archive"].pk,

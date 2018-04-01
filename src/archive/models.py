@@ -147,6 +147,11 @@ class ArchiveSegment(models.Model):
     start_time = models.DateTimeField(default=timezone.now)
     stop_time = models.DateTimeField(null=True)
 
+    def __str__(self):
+        if self.stop_time:
+            return f"Completed {self.type} segment of {self.archive}"
+        return f"Incomplete {self.type} segment of {self.archive}"
+
 
 class Event(models.Model):
     """

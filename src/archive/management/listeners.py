@@ -137,11 +137,17 @@ class AlbatrossListener(LogMixin, NotificationMixin, StreamListener):
     def close_log(self):
 
         for channel in self.channels:
+
+            # Refresh the archive instance in case things have changed
+            archive = Archive.objects.get(pk=channel["archive"].pk)
+
+            for class_name in [_[0] for _ in ArchiveSegment.TYPES]:
+
                 collect.delay(
                     class_name,
-                    channel["archive"].pk,
+                    archive.pk,
                     channel["buffer"],
-                    is_final=channel["archive"].stopped <= timezone.now()
+                    is_final=archive.stopped <= timezone.now()
                 )
                 channel["buffer"] = []
 

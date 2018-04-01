@@ -123,6 +123,31 @@ class Archive(LogMixin, models.Model):
         self.save(update_fields=("stopped",))
 
 
+class ArchiveSegment(models.Model):
+
+    TYPE_RAW = "raw"
+    TYPE_CLOUD = "cloud"
+    TYPE_STATS = "statistics"
+    TYPE_IMAGES = "images"
+    TYPE_MAP = "map"
+    TYPE_SEARCH = "search"
+    TYPES = (
+        (TYPE_RAW, "Raw"),
+        (TYPE_CLOUD, "Cloud"),
+        (TYPE_STATS, "Statistics"),
+        (TYPE_IMAGES, "Images"),
+        (TYPE_MAP, "Map"),
+        (TYPE_SEARCH, "Search")
+    )
+
+    type = models.CharField(max_length=10, choices=TYPES)
+    archive = models.ForeignKey(
+        Archive, related_name="segments", on_delete=models.CASCADE)
+
+    start_time = models.DateTimeField(default=timezone.now)
+    stop_time = models.DateTimeField(null=True)
+
+
 class Event(models.Model):
     """
     Arbitrary event values for an archive that help explain behaviour.  These
